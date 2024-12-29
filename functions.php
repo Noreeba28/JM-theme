@@ -149,6 +149,112 @@ function jm_theme_scripts() {
 }
 add_action( 'wp_enqueue_scripts', 'jm_theme_scripts' );
 
+// Enqueue Scripts for Infinite Scroll
+function jm_enqueue_infinite_scroll_scripts() {
+    wp_enqueue_script('jm-infinite-scroll', get_template_directory_uri() . '/js/infinite-scroll.js', array('jquery'), '1.0', true);
+
+    // Pass AJAX URL to JavaScript
+    wp_localize_script('jm-infinite-scroll', 'jm_ajax', array(
+        'ajax_url' => admin_url('admin-ajax.php'),
+    ));
+}
+add_action('wp_enqueue_scripts', 'jm_enqueue_infinite_scroll_scripts');
+
+// AJAX Handler for Infinite Scroll
+function jm_infinite_scroll_handler() {
+    $paged = isset($_POST['page']) ? intval($_POST['page']) : 1;
+    $query = new WP_Query(array(
+        'post_type' => 'post',
+        'paged' => $paged,
+    ));
+
+    if ($query->have_posts()) :
+        while ($query->have_posts()) : $query->the_post();
+            get_template_part('template-parts/content', get_post_format());
+        endwhile;
+    endif;
+    wp_die(); // Required for AJAX to terminate properly
+}
+add_action('wp_ajax_nopriv_jm_infinite_scroll', 'jm_infinite_scroll_handler');
+add_action('wp_ajax_jm_infinite_scroll', 'jm_infinite_scroll_handler');
+
+function jm_customize_register($wp_customize) {
+    // Add Logo Setting
+    $wp_customize->add_setting('jm_logo', array(
+        'default' => '',
+        'sanitize_callback' => 'esc_url_raw',
+    ));
+    $wp_customize->add_control(new WP_Customize_Image_Control($wp_customize, 'jm_logo', array(
+        'label' => __('Site Logo', 'jm-theme'),
+        'section' => 'title_tagline',
+        'settings' => 'jm_logo',
+    )));
+
+    // Add Font Color Setting
+    $wp_customize->add_setting('jm_font_color', array(
+        'default' => '#000000',
+        'sanitize_callback' => 'sanitize_hex_color',
+    ));
+    $wp_customize->add_control(new WP_Customize_Color_Control($wp_customize, 'jm_font_color', array(
+        'label' => __('Font Color', 'jm-theme'),
+        'section' => 'colors',
+        'settings' => 'jm_font_color',
+    )));
+}
+add_action('customize_register', 'jm_customize_register');
+
+// Apply Custom Font Color
+function jm_custom_styles() {
+    $font_color = get_theme_mod('jm_font_color', '#000000');
+    echo "<style>body { color: $font_color; }</style>";
+}
+add_action('wp_head', 'jm_custom_styles');
+
+$wp_customize->add_setting('jm_logo', array(
+    'default' => '',
+    'sanitize_callback' => 'esc_url_raw',
+));
+$wp_customize->add_control(new WP_Customize_Image_Control($wp_customize, 'jm_logo', array(
+    'label' => __('Site Logo', 'jm-theme'),
+    'section' => 'title_tagline',
+    'settings' => 'jm_logo',
+)));
+
+
+// Register Meta Box
+function jm_add_rating_meta_box() {
+    add_meta_box(
+        'jm_rating',
+        __('Page Rating', 'jm-theme'),
+        'jm_rating_meta_box_callback',
+        'page',
+        'side',
+        'default'
+    );
+}
+add_action('add_meta_boxes', 'jm_add_rating_meta_box');
+
+// Callback for Meta Box
+function jm_rating_meta_box_callback($post) {
+    $rating = get_post_meta($post->ID, '_jm_rating', true);
+    ?>
+    <label for="jm_rating"><?php _e('Rating:', 'jm-theme'); ?></label>
+    <select name="jm_rating" id="jm_rating">
+        <?php for ($i = 1; $i <= 5; $i++) : ?>
+            <option value="<?php echo $i; ?>" <?php selected($rating, $i); ?>><?php echo $i; ?></option>
+        <?php endfor; ?>
+    </select>
+    <?php
+}
+
+// Save Meta Value
+function jm_save_rating_meta($post_id) {
+    if (array_key_exists('jm_rating', $_POST)) {
+        update_post_meta($post_id, '_jm_rating', sanitize_text_field($_POST['jm_rating']));
+    }
+}
+add_action('save_post', 'jm_save_rating_meta');
+
 /**
  * Implement the Custom Header feature.
  */

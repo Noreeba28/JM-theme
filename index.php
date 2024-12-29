@@ -49,6 +49,20 @@ get_header();
 
 		endif;
 		?>
+<div id="content">
+    <article class="post">
+        <h2 class="entry-title">Test Post 1</h2>
+        <div class="entry-content">
+            <p>This is a static test post for verifying the infinite scroll functionality.</p>
+        </div>
+    </article>
+    <article class="post">
+        <h2 class="entry-title">Test Post 2</h2>
+        <div class="entry-content">
+            <p>This is another static test post for verifying the infinite scroll functionality.</p>
+        </div>
+    </article>
+</div>
 
 	</main><!-- #main -->
 
